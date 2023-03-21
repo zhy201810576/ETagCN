@@ -1,4 +1,4 @@
-# ETagCN
+# ETagCN - LANraragi 中文元数据搜刮插件
 
 ## 简介
 该插件基于Difegue编写的E-Hentai插件进行改良，结合[EhTagTranslation](https://github.com/EhTagTranslation/Database)项目提供的中文标签数据库转换来自E-Hentai上的英文标签。
