@@ -1,0 +1,3 @@
+# ETagCN
+
+基于Difegue编写的E-Hentai插件进行改良，结合EhTagTranslation项目提供的数据库转换来自E-Hentai上的英文标签为中文标签。
