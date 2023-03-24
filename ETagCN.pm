@@ -42,7 +42,6 @@ sub plugin_info {
             { type => "bool", desc => "获取额外的时间戳（发布时间）和上传者元数据" },
             { type => "bool", desc => "搜索已删除的图库" },
             { type => "string", desc => "EhTagTranslation项目的JSON数据库文件(db.text.json)的绝对路径" },
-
         ],
         oneshot_arg => "该漫画在e-hentai的URL(将于确切的漫画相匹配的标签到你的档案中)",
         cooldown    => 4
@@ -322,13 +321,14 @@ sub get_json_from_EH {
 
 # 将原tag翻译为中文tag
 sub translate_tag_to_cn {
+    my $logger = get_plugin_logger();
     my ($list, $db_path) = @_;
     my $filename = $db_path; # json 文件的路径
     my $json_text = do {
         open(my $json_fh, "<", $filename)
-            or die("Can't open $filename: $!\n");
+            or $logger->debug("Can't open $filename: $!\n");
         local $/;
-        <$json_fh>
+        <$json_fh>;
     };
     my $json = decode_json($json_text);
     my $target = $json->{'data'};

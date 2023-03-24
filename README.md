@@ -5,7 +5,9 @@
 
 该插件是[Difegue / LANraragi](https://github.com/Difegue/LANraragi)项目的元数据插件，也适用于[uparrows/LANraragi_cn](https://github.com/uparrows/LANraragi_cn)项目。
 
-该插件是在ChatGPT帮助下开发的(我没有Perl编程基础，只简单了解其基本语法)，所以可能会有不明BUG出现，还请给位见谅。若遇到相关问题可以提交Issues，我会尝试去解决。也欢迎各位大佬帮助完善该插件，谢谢😃
+该插件是在ChatGPT帮助下开发的(我没有Perl编程基础，只简单了解其基本语法)，所以可能会有不明BUG出现，还请给位见谅。若遇到相关问题可以提交Issues，我会尝试去解决。也欢迎各位大佬帮助完善该插件，在此谢谢诸位😃
+
+**P.S.** 根据 **[issues #1](https://github.com/zhy201810576/ETagCN/issues/1)** 用户的反馈，我编写了一个将数据库中的来自E-Hentai上的英文标签批量翻译为中文标签脚本——[ETagConverter - LANraragi 英文标签批量翻译脚本](https://github.com/zhy201810576/ETagConverter),有需求的用户可以试试。
 
 ## 使用方法(Docker)
 1. 下载插件
