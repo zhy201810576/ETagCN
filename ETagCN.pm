@@ -26,15 +26,15 @@ sub plugin_info {
         namespace  => "etagcn",
         login_from => "ehlogin",
         author     => "GrayZhao & Difegue and others",
-        version    => "2.5.1",
+        version    => "2.5.2",
         description =>
           "搜索 g.e-hentai 以查找与您的存档匹配的标签,并将原标签翻译为中文标签. <br/><i class='fa fa-exclamation-circle'></i> 此插件将使用存档的 source: tag （如果存在）",
         icon =>
           "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAAEnQAABJ0Ad5mH3gAAAOASURBVDhPjVNbaFRXFF3n3puZyZ3EzJ1HkpIohthAP0InYMAKUUpfVFDylY9Bg1CJ+UllfLSEIoIEtBan7Y9t8KO0pSU0lH74oQZsMWImkSBalUADqR8mTVOTyXMymcfd7nPuNZpo2yzm3DmPfdZZZ+91MDyYJA0g+AMkStY3i8Brn392jjYKIclK7hP0rNzK7XkIIM8BdlRgkdYvvhya7bcUGT0ugKbXNZ4zcsCS+Qoycyl3y39DCL5qoJ+DpUKvM6mwzIcsFQCfjtmfL+LQX5cRa+9AOp12A57Btm1UV1ejoaHBIbTupDB/YB/yg5fcEKDo3VaUnPoWlLZBfg1zOwU6OjqQSr2o1DAMJJNJNDU1OYTBeynMNFbBPHoRwirnxOWgVW2DVhbh4wsQQR2p3VWgxXGX4uWQxJxyFyvLKHpzDzy7tsOz+w1olkMmQfKW+z/Gmc7javxvKC0t5SSywtCfRFplDYlNIRJlES65QYEbRNYQrf77bxFtKRauOYj6+vook8m4IweBAFtNXfl+CtP1FszD56VuLo6J/O/XYT98AL1+FwojQxChSuRuXsV3X55mywbR1taGlpYWlbfx8XHEYjFVFEfhQ2UyCriKAv2sapjIF/+agndZ3dmrZP1GpH/4Fb1eu0XF9vT0UHd3t+onEgkaGxuj8vJy+UieQfPzASxQNqxwyyyD2D5YmoU9PwfP3naETS+i0Siam5vBJOjq6kI8HkdNTQ2y2SzkVmZQXyydPMIEC+y/eRQfuQAU8mreznBVhIAvBFwb+YeLdA+6z0RFRQUmJiZUzFMohVKFr/UUq5jmAU/ofM5KGkWN74HY8MarnBtv8Wq1T350DLquw+PxyO1rIOC3KJicQbZ/SFpeKUGBvVfGchhaZDOEybnIs4U0HTYfOP+OABcVvb29qjCyL2FZlrysTqHJPBY+OMwbpGBJmIPx2g5FbuzYC30ze9KxJEQYmIlWclom1Xh0dBR1dXWKNBwOQxxtP0SJn/qBne+vGlmBXwtHATmujtfDP9nn3Hj9WBn4FefiB3Gi8xM32IFSKA05cvc2Jh894rysKbqCaZq48MWn+OaPrUBjTKUD37+Fqam/EYnwM30OklBK/V8spqYIRh3hB8evd4YH3ZW1YELaEKGE32sQKt6mK7/86M68CHnYhgkTifNqQ21trVKyvsm1gYEBegL+M2W04901FQAAAABJRU5ErkJggg==",
         parameters => [
             { type => "string", desc => "在搜索中强制使用语言（由于 EH 限制，日语无法使用）" },
-            { type => "bool",   desc => "保存档案名称" },
-            { type => "bool",   desc => "首先使用缩略图获取（否则使用标题）" },
+            { type => "bool",   desc => "首先使用缩略图获取（如果失败，则回退到标题）" },
+            { type => "bool",   desc => "使用标题的 gID 进行搜索（如果失败，则回退到标题）" },
             { type => "bool",   desc => "使用 ExHentai（可以在没有星形 cookie 的情况下搜索fjorded内容）" },
             {   type => "bool",
                 desc => "如果可用，请保存原始标题，而不是英文或罗马拼音标题"
@@ -55,7 +55,7 @@ sub get_tags {
     shift;
     my $lrr_info = shift;                     # Global info hash
     my $ua       = $lrr_info->{user_agent};
-    my ( $lang, $savetitle, $usethumbs, $enablepanda, $jpntitle, $additionaltags, $expunged, $db_path ) = @_;    # Plugin parameters
+    my ( $lang, $usethumbs, $search_gid, $enablepanda, $jpntitle, $additionaltags, $expunged, $db_path ) = @_;    # Plugin parameters
 
     # Use the logger to output status - they'll be passed to a specialized logfile and written to STDOUT.
     my $logger = get_plugin_logger();
@@ -83,7 +83,7 @@ sub get_tags {
             $lrr_info->{archive_title},
             $lrr_info->{existing_tags},
             $lrr_info->{thumbnail_hash},
-            $ua, $domain, $lang, $usethumbs, $expunged
+            $ua, $domain, $lang, $usethumbs, $search_gid, $expunged
         );
     }
 
@@ -98,19 +98,19 @@ sub get_tags {
         }
 
         $logger->info("No matching EH Gallery Found!");
-        return ( error => "No matching EH Gallery Found!" );
+        return ( error => "没有匹配的 E-Hentai 画廊！" );
     } else {
         $logger->debug("EH API Tokens are $gID / $gToken");
     }
 
-    my ( $ehtags, $ehtitle ) = &get_tags_from_EH( $ua, $gID, $gToken, $jpntitle, $additionaltags,$db_path );
+    my ( $ehtags, $ehtitle ) = &get_tags_from_EH( $ua, $gID, $gToken, $jpntitle, $additionaltags, $db_path );
     my %hashdata = ( tags => $ehtags );
 
     # Add source URL and title if possible/applicable
     if ( $hashdata{tags} ne "" ) {
 
         if ( !$hasSrc ) { $hashdata{tags} .= ", source:" . ( split( '://', $domain ) )[1] . "/g/$gID/$gToken"; }
-        if ($savetitle) { $hashdata{title} = $ehtitle; }
+        $hashdata{title} = $ehtitle;
     }
 
     #Return a hash containing the new metadata - it will be integrated in LRR.
@@ -123,7 +123,7 @@ sub get_tags {
 
 sub lookup_gallery {
 
-    my ( $title, $tags, $thumbhash, $ua, $domain, $defaultlanguage, $usethumbs, $expunged ) = @_;
+    my ( $title, $tags, $thumbhash, $ua, $domain, $defaultlanguage, $usethumbs, $search_gid, $expunged ) = @_;
     my $logger = get_plugin_logger();
     my $URL    = "";
 
@@ -133,23 +133,7 @@ sub lookup_gallery {
         $logger->info("Reverse Image Search Enabled, trying now.");
 
         #search with image SHA hash
-        $URL =
-            $domain
-          . "?advsearch=1&f_sname=on&f_sdt2=on&f_spf=&f_spt=&f_sfu=on&f_sft=on&f_sfl=on&f_shash="
-          . $thumbhash
-          . "&fs_covers=1&fs_similar=1";
-
-        #Include expunged galleries in the search if the option is enabled.
-        if ($expunged) {
-            $URL = $URL . "&fs_exp=1";
-        }
-
-        # Add the language override, if it's defined.
-        if ( $defaultlanguage ne "" ) {
-
-            # Add f_stags to search in tags for language
-            $URL = $URL . "&f_stags=on&f_search=" . uri_escape_utf8("language:$defaultlanguage");
-        }
+        $URL = $domain . "?f_shash=" . $thumbhash . "&fs_similar=on&fs_covers=on";
 
         $logger->debug("Using URL $URL (archive thumbnail hash)");
 
@@ -160,19 +144,32 @@ sub lookup_gallery {
         }
     }
 
-    # Regular text search
-    $URL =
-        $domain
-      . "?advsearch=1&f_sname=on&f_sdt2=on&f_spf=&f_spt=&f_sfu=on&f_sft=on&f_sfl=on"
-      . "&f_search="
-      . uri_escape_utf8( qw(") . $title . qw(") );
+    # Search using gID if present in title name
+    my ($title_gid) = $title =~ /\[([0-9]+)\]/g;
+    if ( $search_gid && $title_gid ) {
+        $URL = $domain . "?f_search=" . uri_escape_utf8("gid:$title_gid");
+
+        $logger->debug("Found gID: $title_gid, Using URL $URL (gID from archive title)");
+
+        my ( $gId, $gToken ) = &ehentai_parse( $URL, $ua );
+
+        if ( $gId ne "" && $gToken ne "" ) {
+            return ( $gId, $gToken );
+        }
+    }
+
+    # Regular text search (advanced options: Disable default filters for: Language, Uploader, Tags)
+    $URL = $domain . "?advsearch=1&f_sfu=on&f_sft=on&f_sfl=on" . "&f_search=" . uri_escape_utf8( qw(") . $title . qw(") );
 
     my $has_artist = 0;
 
-    # Add artist tag from the OG tags if it exists
+    # Add artist tag from the OG tags if it exists (and only contains ASCII characters)
     if ( $tags =~ /.*artist:\s?([^,]*),*.*/gi ) {
-        $URL        = $URL . "+" . uri_escape_utf8("artist:$1");
+        my $artist = $1;
+        if ( $artist =~ /^[\x00-\x7F]*$/ ) {
+            $URL        = $URL . "+" . uri_escape_utf8("artist:$artist");
         $has_artist = 1;
+    }
     }
 
     # Add the language override, if it's defined.
@@ -180,12 +177,7 @@ sub lookup_gallery {
         $URL = $URL . "+" . uri_escape_utf8("language:$defaultlanguage");
     }
 
-    # Add f_stags to search in tags if we added a tag (or two) in the search
-    if ( $has_artist || $defaultlanguage ne "" ) {
-        $URL = $URL . "&f_stags=on";
-    }
-
-    # Include expunged galleries in the search if the option is enabled.
+    # Search expunged galleries if the option is enabled.
     if ($expunged) {
         $URL = $URL . "&f_sh=on";
     }
@@ -241,14 +233,14 @@ sub search_gallery {
 
     my $res = $ua->max_redirects(5)->get($url)->result;
 
-    if ( index( $res->body, "Your IP address has been" ) != -1 ) {
-        return ( "", "Temporarily banned from EH for excessive pageloads." );
+    if ( index( $res->body, "您的 IP 地址已经被BAN" ) != -1 ) {
+        return ( "", "因页面加载过多，您的 IP 地址已被 E-Hentai 暂时封禁。" );
     }
 
     return ( $res->dom, undef );
 }
 
-# get_tags_from_EH(userAgent, gID, gToken, jpntitle, additionaltags, $db_path)
+# get_tags_from_EH(userAgent, gID, gToken, jpntitle, additionaltags)
 # Executes an e-hentai API request with the given JSON and returns tags and title.
 sub get_tags_from_EH {
 

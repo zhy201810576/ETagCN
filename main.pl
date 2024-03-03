@@ -37,7 +37,7 @@ sub process_json_data {
 
 
 my @list = ("artist:gentsuki", "female:ponytail","female:schoolgirl uniform", "other:no penetration");
-my $file_path = "ETagCN/db.text.json";
+my $file_path = "db.text.json";
 my $result = process_json_data(\@list, $file_path);
 print join(",", @$result), "\n";
 # 输出 "艺术家:2"
