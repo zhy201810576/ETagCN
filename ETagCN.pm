@@ -195,6 +195,7 @@ sub ehentai_parse() {
     my $logger = get_plugin_logger();
 
     my ( $dom, $error ) = search_gallery( $url, $ua );
+
     if ($error) {
         return ( "", $error );
     }
@@ -232,8 +233,15 @@ sub search_gallery {
     my $logger = get_plugin_logger();
 
     my $res = $ua->max_redirects(5)->get($url)->result;
+    
+    # 添加判断，检查$res->body是否为空
+    if ($res->body eq '') {
+        $logger->info("The `igneous cookie` parameter of the login plugin `E-Hentai` may have expired, please update it in time!");
+        return ( "", "登录插件 `E-Hentai`的`igneous cookie`参数可能已过期，请及时更新！" );
+    }
 
-    if ( index( $res->body, "您的 IP 地址已经被BAN" ) != -1 ) {
+    if ( index( $res->body, "Your IP address has been" ) != -1 ) {
+        $logger->info("Temporarily banned from EH for excessive pageloads.");
         return ( "", "因页面加载过多，您的 IP 地址已被 E-Hentai 暂时封禁。" );
     }
 
