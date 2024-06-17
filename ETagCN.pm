@@ -26,7 +26,7 @@ sub plugin_info {
         namespace  => "etagcn",
         login_from => "ehlogin",
         author     => "GrayZhao & Difegue and others",
-        version    => "2.5.2",
+        version    => "2.5.3",
         description =>
           "搜索 g.e-hentai 以查找与您的存档匹配的标签,并将原标签翻译为中文标签. <br/><i class='fa fa-exclamation-circle'></i> 此插件将使用存档的 source: tag （如果存在）",
         icon =>
@@ -159,7 +159,7 @@ sub lookup_gallery {
     }
 
     # Regular text search (advanced options: Disable default filters for: Language, Uploader, Tags)
-    $URL = $domain . "?advsearch=1&f_sfu=on&f_sft=on&f_sfl=on" . "&f_search=" . uri_escape_utf8( qw(") . $title . qw(") );
+    $URL = $domain . "?advsearch=1&f_sfu=on&f_sft=on&f_sfl=on" . "&f_search=" . uri_escape_utf8( $title );
 
     my $has_artist = 0;
 
